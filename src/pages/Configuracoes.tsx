@@ -5,9 +5,20 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, Lock, Palette, Globe } from "lucide-react";
+import { User, Bell, Lock, Palette, Globe, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
 
 export default function Configuracoes() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("psifinance_auth");
+    toast.success("Você saiu com sucesso!");
+    navigate("/auth");
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -195,6 +206,27 @@ export default function Configuracoes() {
             <Label htmlFor="currency">Moeda</Label>
             <Input id="currency" defaultValue="Real (R$)" disabled />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Logout Section */}
+      <Card className="shadow-md border-destructive/20">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <LogOut className="h-5 w-5 text-destructive" />
+            <CardTitle>Sair da conta</CardTitle>
+          </div>
+          <CardDescription>Desconecte-se do aplicativo</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            variant="destructive" 
+            onClick={handleLogout}
+            className="w-full md:w-auto"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sair
+          </Button>
         </CardContent>
       </Card>
     </div>
