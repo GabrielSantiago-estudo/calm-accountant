@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -27,6 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 const clients = [
   { id: 1, name: "Maria Silva", type: "Individual", value: "R$ 200", status: "paid", date: "10/10/2024" },
@@ -34,6 +40,8 @@ const clients = [
   { id: 3, name: "Ana Costa", type: "Casal", value: "R$ 350", status: "paid", date: "15/10/2024" },
   { id: 4, name: "Carlos Mendes", type: "Individual", value: "R$ 200", status: "paid", date: "16/10/2024" },
   { id: 5, name: "Beatriz Alves", type: "Família", value: "R$ 400", status: "pending", date: "18/10/2024" },
+  { id: 6, name: "Fernanda Lima", type: "Casal", value: "R$ 350", status: "paid", date: "05/10/2024" },
+  { id: 7, name: "Roberto Souza", type: "Individual", value: "R$ 200", status: "pending", date: "08/10/2024" },
 ];
 
 const statusConfig = {
@@ -44,10 +52,35 @@ const statusConfig = {
 export default function Clientes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClients = useMemo(() => {
+    return clients.filter(client => {
+      const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === "all" || client.status === filterStatus;
+      const matchesType = filterType === "all" || client.type === filterType;
+      const matchesDate = !filterDate || client.date.includes(filterDate);
+      
+      return matchesSearch && matchesStatus && matchesType && matchesDate;
+    });
+  }, [searchTerm, filterStatus, filterType, filterDate]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterStatus !== "all") count++;
+    if (filterType !== "all") count++;
+    if (filterDate) count++;
+    return count;
+  }, [filterStatus, filterType, filterDate]);
+
+  const clearFilters = () => {
+    setFilterStatus("all");
+    setFilterType("all");
+    setFilterDate("");
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -127,11 +160,108 @@ export default function Clientes() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filtros
-            </Button>
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 relative">
+                  <Filter className="h-4 w-4" />
+                  Filtros
+                  {activeFiltersCount > 0 && (
+                    <Badge className="ml-2 px-2 py-0 h-5 min-w-5 bg-primary text-primary-foreground">
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">Filtros</h4>
+                    {activeFiltersCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="h-8 px-2 text-xs"
+                      >
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Status de Pagamento</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="paid">Pago</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tipo de Sessão</Label>
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="Individual">Individual</SelectItem>
+                        <SelectItem value="Casal">Casal</SelectItem>
+                        <SelectItem value="Família">Família</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Data</Label>
+                    <Input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      placeholder="Filtrar por data"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
+          
+          {activeFiltersCount > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {filterStatus !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Status: {statusConfig[filterStatus as keyof typeof statusConfig]?.label}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => setFilterStatus("all")}
+                  />
+                </Badge>
+              )}
+              {filterType !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Tipo: {filterType}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => setFilterType("all")}
+                  />
+                </Badge>
+              )}
+              {filterDate && (
+                <Badge variant="secondary" className="gap-1">
+                  Data: {new Date(filterDate).toLocaleDateString('pt-BR')}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => setFilterDate("")}
+                  />
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Calendar as CalendarIcon } from "lucide-react";
@@ -24,31 +25,73 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const monthlyData = [
-  { month: "Jan", receita: 4200, sessoes: 21 },
-  { month: "Fev", receita: 5100, sessoes: 25 },
-  { month: "Mar", receita: 4800, sessoes: 24 },
-  { month: "Abr", receita: 6200, sessoes: 31 },
-  { month: "Mai", receita: 5800, sessoes: 29 },
-  { month: "Jun", receita: 7400, sessoes: 37 },
-];
+const allMonthlyData = {
+  2024: [
+    { month: "Jan", receita: 4200, sessoes: 21 },
+    { month: "Fev", receita: 5100, sessoes: 25 },
+    { month: "Mar", receita: 4800, sessoes: 24 },
+    { month: "Abr", receita: 6200, sessoes: 31 },
+    { month: "Mai", receita: 5800, sessoes: 29 },
+    { month: "Jun", receita: 7400, sessoes: 37 },
+  ],
+  2023: [
+    { month: "Jan", receita: 3200, sessoes: 16 },
+    { month: "Fev", receita: 3800, sessoes: 19 },
+    { month: "Mar", receita: 4100, sessoes: 21 },
+    { month: "Abr", receita: 4500, sessoes: 23 },
+    { month: "Mai", receita: 4200, sessoes: 21 },
+    { month: "Jun", receita: 5000, sessoes: 25 },
+  ],
+};
 
-const sessionTypeData = [
-  { name: "Individual", value: 65, color: "hsl(var(--primary))" },
-  { name: "Casal", value: 25, color: "hsl(var(--secondary))" },
-  { name: "Família", value: 10, color: "hsl(var(--accent))" },
-];
+const allSessionTypeData = {
+  2024: [
+    { name: "Individual", value: 65, color: "hsl(var(--primary))" },
+    { name: "Casal", value: 25, color: "hsl(var(--secondary))" },
+    { name: "Família", value: 10, color: "hsl(var(--accent))" },
+  ],
+  2023: [
+    { name: "Individual", value: 70, color: "hsl(var(--primary))" },
+    { name: "Casal", value: 20, color: "hsl(var(--secondary))" },
+    { name: "Família", value: 10, color: "hsl(var(--accent))" },
+  ],
+};
 
-const clientRetention = [
-  { month: "Jan", novos: 3, retidos: 15 },
-  { month: "Fev", novos: 5, retidos: 18 },
-  { month: "Mar", novos: 2, retidos: 19 },
-  { month: "Abr", novos: 6, retidos: 21 },
-  { month: "Mai", novos: 4, retidos: 22 },
-  { month: "Jun", novos: 5, retidos: 25 },
-];
+const allClientRetention = {
+  2024: [
+    { month: "Jan", novos: 3, retidos: 15 },
+    { month: "Fev", novos: 5, retidos: 18 },
+    { month: "Mar", novos: 2, retidos: 19 },
+    { month: "Abr", novos: 6, retidos: 21 },
+    { month: "Mai", novos: 4, retidos: 22 },
+    { month: "Jun", novos: 5, retidos: 25 },
+  ],
+  2023: [
+    { month: "Jan", novos: 2, retidos: 12 },
+    { month: "Fev", novos: 4, retidos: 14 },
+    { month: "Mar", novos: 3, retidos: 15 },
+    { month: "Abr", novos: 5, retidos: 17 },
+    { month: "Mai", novos: 3, retidos: 18 },
+    { month: "Jun", novos: 4, retidos: 20 },
+  ],
+};
 
 export default function Relatorios() {
+  const [selectedYear, setSelectedYear] = useState<"2024" | "2023">("2024");
+
+  const monthlyData = useMemo(() => allMonthlyData[selectedYear], [selectedYear]);
+  const sessionTypeData = useMemo(() => allSessionTypeData[selectedYear], [selectedYear]);
+  const clientRetention = useMemo(() => allClientRetention[selectedYear], [selectedYear]);
+
+  const avgRevenue = useMemo(() => {
+    const total = monthlyData.reduce((acc, item) => acc + item.receita, 0);
+    return Math.round(total / monthlyData.length);
+  }, [monthlyData]);
+
+  const totalSessions = useMemo(() => {
+    return monthlyData.reduce((acc, item) => acc + item.sessoes, 0);
+  }, [monthlyData]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -58,7 +101,7 @@ export default function Relatorios() {
           <p className="text-muted-foreground">Análise detalhada do seu desempenho</p>
         </div>
         <div className="flex gap-3">
-          <Select defaultValue="2024">
+          <Select value={selectedYear} onValueChange={(value) => setSelectedYear(value as "2024" | "2023")}>
             <SelectTrigger className="w-[140px]">
               <CalendarIcon className="h-4 w-4 mr-2" />
               <SelectValue />
@@ -82,7 +125,7 @@ export default function Relatorios() {
             <p className="text-sm font-medium text-muted-foreground mb-2">
               Média Mensal
             </p>
-            <p className="text-4xl font-bold text-primary">R$ 5.583</p>
+            <p className="text-4xl font-bold text-primary">R$ {avgRevenue.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground mt-2">Últimos 6 meses</p>
           </CardContent>
         </Card>
@@ -92,8 +135,8 @@ export default function Relatorios() {
             <p className="text-sm font-medium text-muted-foreground mb-2">
               Total de Sessões
             </p>
-            <p className="text-4xl font-bold text-secondary">167</p>
-            <p className="text-xs text-muted-foreground mt-2">Em 2024</p>
+            <p className="text-4xl font-bold text-secondary">{totalSessions}</p>
+            <p className="text-xs text-muted-foreground mt-2">Em {selectedYear}</p>
           </CardContent>
         </Card>
 
