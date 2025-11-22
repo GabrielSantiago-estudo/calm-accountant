@@ -1,17 +1,55 @@
--- Índices para clients
-CREATE INDEX IF NOT EXISTS idx_clients_psychologist ON clients(psychologist_id);
-CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(payment_status, active_status);
+CREATE TABLE IF NOT EXISTS psychologists (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    licence_number VARCHAR(50),
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
--- Índices para sessions
-CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(session_date, psychologist_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(session_status);
-CREATE INDEX IF NOT EXISTS idx_sessions_client ON sessions(client_id);
+CREATE TABLE IF NOT EXISTS clients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    psychologist_id INT NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    session_type VARCHAR(50),
+    session_value DECIMAL(10, 2),
+    payment_status VARCHAR(50) DEFAULT 'Active',
+    notes TEXT,
+    active_status BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (psychologist_id) REFERENCES psychologists(id)
+);
 
--- Índices para transactions
-CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(trans_date, psychologist_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(trans_type, trans_status);
-CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(trans_category);
+CREATE TABLE IF NOT EXISTS sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    session_date DATE NOT NULL,
+    session_time VARCHAR(10),
+    session_status VARCHAR(50) DEFAULT 'Scheduled',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+);
 
--- Índices para goals
-CREATE INDEX IF NOT EXISTS idx_goals_period ON goals(psychologist_id, start_date, end_date);
-CREATE INDEX IF NOT EXISTS idx_goals_active ON goals(target_active);
+CREATE TABLE IF NOT EXISTS transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    psychologist_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    trans_type ENUM('Receita', 'Despesa') NOT NULL,
+    trans_category VARCHAR(100),
+    trans_date DATE NOT NULL,
+    description TEXT,
+    trans_status VARCHAR(50) DEFAULT 'Paid',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (psychologist_id) REFERENCES psychologists(id)
+);
+
+-- Índices (Mantidos do seu código original)
+CREATE INDEX idx_clients_psychologist ON clients(psychologist_id);
+CREATE INDEX idx_sessions_date ON sessions(session_date);
+CREATE INDEX idx_transactions_date ON transactions(trans_date, psychologist_id);
