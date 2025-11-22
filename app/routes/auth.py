@@ -1,41 +1,58 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-import mysql.connector
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from passlib.hash import bcrypt
 from app.database.connection import get_db
-from app.services.auth import verify_password, create_access_token, get_password_hash
-from app.models.psychologist import PsychologistCreate
+from app.models.psychologist import Psychologist as PsychologistModel
+from app.schemas.psychologist import Psychologist as PsychologistSchema
+from typing import Optional
 
-router = APIRouter(tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-@router.post("/register")
-async def register(user: PsychologistCreate, db: mysql.connector.MySQLConnection = Depends(get_db)):
-    cursor = db.cursor(dictionary=True)
+# 🔐 Configurações JWT
+SECRET_KEY = "your-secret-key-change-this"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+# ✅ Gerar token JWT
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# ✅ Login de psicóloga
+@router.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    psychologist = db.query(PsychologistModel).filter_by(email=form_data.username).first()
+    if not psychologist or not bcrypt.verify(form_data.password, psychologist.password_hash):
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+
+    access_token = create_access_token(data={"sub": psychologist.email})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# ✅ Dependência para proteger rotas
+def get_current_psychologist(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token inválido ou expirado",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
-        # Verificar se email existe
-        cursor.execute("SELECT * FROM psychologists WHERE email = %s", (user.email,))
-        if cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Email já cadastrado")
-            
-        hashed_pw = get_password_hash(user.password)
-        query = "INSERT INTO psychologists (full_name, email, licence_number, password_hash) VALUES (%s, %s, %s, %s)"
-        cursor.execute(query, (user.full_name, user.email, user.licence_number, hashed_pw))
-        db.commit()
-        return {"msg": "Usuário criado com sucesso"}
-    finally:
-        cursor.close()
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
 
-@router.post("/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: mysql.connector.MySQLConnection = Depends(get_db)):
-    cursor = db.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT * FROM psychologists WHERE email = %s", (form_data.username,))
-        user = cursor.fetchone()
-        
-        if not user or not verify_password(form_data.password, user['password_hash']):
-            raise HTTPException(status_code=401, detail="Email ou senha incorretos")
-            
-        access_token = create_access_token(data={"sub": str(user['id']), "email": user['email']})
-        return {"access_token": access_token, "token_type": "bearer", "id": user['id']}
-    finally:
-        cursor.close()
+    psychologist = db.query(PsychologistModel).filter_by(email=email).first()
+    if psychologist is None:
+        raise credentials_exception
+    return psychologist
