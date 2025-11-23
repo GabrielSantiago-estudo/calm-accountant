@@ -4,7 +4,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["calm-accountant-frontend/src/src/*"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,

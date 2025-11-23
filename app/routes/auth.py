@@ -1,58 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+# app/routes/auth.py
+import os
+from fastapi import APIRouter, HTTPException
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from passlib.hash import bcrypt
-from app.database.connection import get_db
-from app.models.psychologist import Psychologist as PsychologistModel
-from app.schemas.psychologist import Psychologist as PsychologistSchema
-from typing import Optional
+from jose import jwt
+from passlib.context import CryptContext
+from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-# 🔐 Configurações JWT
-SECRET_KEY = "your-secret-key-change-this"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# Funções auxiliares internas
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-# ✅ Gerar token JWT
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-# ✅ Login de psicóloga
-@router.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    psychologist = db.query(PsychologistModel).filter_by(email=form_data.username).first()
-    if not psychologist or not bcrypt.verify(form_data.password, psychologist.password_hash):
+# 🔐 Login administrativo interno
+@router.post("/admin-login")
+def admin_login(email: str, password: str):
+    admin_email = os.getenv("ADMIN_EMAIL")
+    admin_password = os.getenv("ADMIN_PASSWORD")
+
+    if email != admin_email or password != admin_password:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    access_token = create_access_token(data={"sub": psychologist.email})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# ✅ Dependência para proteger rotas
-def get_current_psychologist(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token inválido ou expirado",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
-    psychologist = db.query(PsychologistModel).filter_by(email=email).first()
-    if psychologist is None:
-        raise credentials_exception
-    return psychologist
+    token = create_access_token({"sub": email, "role": "admin"})
+    return {"access_token": token, "token_type": "bearer"}

@@ -10,6 +10,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import React, { useState, useEffect } from "react";
+import { apiRequest } from "../api/api";
+import { endpoints } from "../api/endpoints";
+
 
 const transactions = [
   { id: 1, type: "income", description: "Sessão - Maria Silva", value: "R$ 200,00", date: "14/10/2024", status: "completed" },

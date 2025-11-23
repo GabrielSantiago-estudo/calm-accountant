@@ -33,6 +33,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import React, { useState, useEffect } from "react";
+import { apiRequest } from "../api/api";
+import { endpoints } from "../api/endpoints";
+
 
 const clients = [
   { id: 1, name: "Maria Silva", type: "Individual", value: "R$ 200", status: "paid", date: "10/10/2024" },

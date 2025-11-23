@@ -8,6 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Bell, Lock, Palette, Globe, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import React, { useState, useEffect } from "react";
+import { apiRequest } from "../api/api";
+import { endpoints } from "../api/endpoints";
+
 
 
 export default function Configuracoes() {
