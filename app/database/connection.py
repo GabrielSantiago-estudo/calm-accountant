@@ -1,42 +1,32 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
+# URL de conexão com o banco de dados
+DATABASE_URL = f"mysql+mysqlconnector://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 
+# Criação do engine e da sessão
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+# Classe para gerenciar conexões de banco
 class DatabaseConnection:
-    _instance = None
+    def __init__(self):
+        self.db = SessionLocal()
+
+    def __enter__(self):
+        return self.db
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.db.close()
 
 
-def __new__(cls):
-    if cls._instance is None:
-        cls._instance = super().__new__(cls)
-        cls._instance._create_engine()
-    return cls._instance
-
-def _create_engine(self):
-    try:
-        self.engine = create_engine(settings.database_url, echo=False, pool_pre_ping=True)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-        print("✅ Conectado ao banco de dados via SQLAlchemy")
-    except SQLAlchemyError as e:
-        print(f"❌ Erro ao criar engine: {e}")
-        self.engine = None
-        self.SessionLocal = None
-
-def get_session(self):
-    if not hasattr(self, "SessionLocal") or self.SessionLocal is None:
-        self._create_engine()
-    if self.SessionLocal is None:
-        raise RuntimeError("Não foi possível criar a Session do banco de dados")
-    return self.SessionLocal()
-
-# Dependência padrão FastAPI
+# Função utilitária usada pelos models e serviços
 def get_db():
-    db = DatabaseConnection().get_session()
+    db = SessionLocal()
     try:
         yield db
     finally:

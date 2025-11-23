@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 class Settings(BaseSettings):
@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_USER: str = "root"
-    DB_PASSWORD: str = "NovaSenhaSegura123!"
-    DB_NAME: str = "calm_accountant"
+    DB_PASSWORD: str = "Admin@123"
+    DB_NAME: str = "ProjetoExtensão"
 
     # Aplicação
     PORT: int = 8000
@@ -21,11 +21,11 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "allow"  # ← ESSA LINHA É O SEGREDO
 
     @property
     def database_url(self) -> str:
-        """Gera a URL completa de conexão"""
-        return f"{self.DB_TYPE}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        return f"{self.DB_TYPE}+mysqlconnector://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
 @lru_cache()
 def get_settings():
