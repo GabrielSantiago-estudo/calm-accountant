@@ -13,8 +13,13 @@ export async function apiRequest<T>(
   if (data) options.body = JSON.stringify(data);
 
   const response = await fetch(`${API_URL}${endpoint}`, options);
+  
+  // Adicione logs de debug (para testes)
+  console.log(`➡️ Request: ${method} ${API_URL}${endpoint}`);
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    console.error("❌ API Error:", error);
     throw new Error(error.detail || "Erro na requisição");
   }
 

@@ -1,14 +1,11 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
 
-# Use a URL centralizada a partir das settings
 DATABASE_URL = settings.database_url
 
 
-# Criação do engine e da sessão. Se MySQL falhar, usar SQLite de fallback.
 def _create_engine_with_fallback(url: str):
-    # detect sqlite
     is_sqlite = url.startswith("sqlite:")
     try:
         if is_sqlite:
@@ -16,13 +13,14 @@ def _create_engine_with_fallback(url: str):
         else:
             eng = create_engine(url)
 
-        # Test connection
+        # ✅ Testa a conexão com sintaxe moderna
         with eng.connect() as conn:
-            pass
+            conn.execute(text("SELECT 1"))
+
+        print(f"✅ Conectado ao banco: {url}")
         return eng
     except Exception as e:
-        print(f"⚠️ Não foi possível conectar ao banco de dados ({'sqlite' if is_sqlite else 'db'}): {e}")
-        # If we were not already using sqlite, fallback to sqlite
+        print(f"⚠️ Falha ao conectar ao banco ({url}): {e}")
         if not is_sqlite:
             fallback = f"sqlite:///{settings.SQLITE_PATH}"
             print(f"⚠️ Usando SQLite de fallback: {fallback}")
@@ -31,12 +29,13 @@ def _create_engine_with_fallback(url: str):
         raise
 
 
+# ✅ Criação das instâncias principais do SQLAlchemy
 engine = _create_engine_with_fallback(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-# Classe para gerenciar conexões de banco (context manager simplificado)
+# ✅ Context manager para sessões
 class DatabaseConnection:
     def __init__(self):
         self.db = SessionLocal()
@@ -48,7 +47,7 @@ class DatabaseConnection:
         self.db.close()
 
 
-# Função utilitária usada pelos models e serviços
+# ✅ Função utilitária para dependência FastAPI
 def get_db():
     db = SessionLocal()
     try:

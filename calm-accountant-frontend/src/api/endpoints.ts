@@ -1,12 +1,10 @@
-export const endpoints = {
-  auth: {
-    login: "/auth/admin-login",
-  },
-  psychologists: {
-    list: "/psychologists",
-    create: "/psychologists",
-  },
-  clients: (psychologistId: number) => `/psychologists/${psychologistId}/clients`,
-  sessions: "/sessions",
-  transactions: "/transactions",
+import { API_URL } from "./config";
+
+export const ENDPOINTS = {
+  LOGIN: `${API_URL}/auth/login`,
+  REGISTER: `${API_URL}/auth/register`,
+  CLIENTS: `${API_URL}/clients`,
+  PSYCHOLOGISTS: `${API_URL}/psychologists`,
+  SESSIONS: `${API_URL}/sessions`,
+  TRANSACTIONS: `${API_URL}/transactions`,
 };

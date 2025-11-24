@@ -1,11 +1,14 @@
 from app.database.connection import Base, engine
-# Importar modelos para que sejam registrados no MetaData
-import app.models.client
-import app.models.psychologist
-import app.models.session
-import app.models.transaction
 from sqlalchemy.exc import SQLAlchemyError
 
+# Importa modelos
+try:
+    import app.models.client
+    import app.models.psychologist
+    import app.models.session
+    import app.models.transaction
+except Exception as e:
+    print(f"⚠️ Erro ao importar modelos: {e}")
 
 def init_database() -> None:
     try:
