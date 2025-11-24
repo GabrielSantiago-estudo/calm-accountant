@@ -13,10 +13,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import React, { useState, useEffect } from "react";
-import { apiRequest } from "../api/api";
-import { endpoints } from "../api/endpoints";
-
 
 const revenueData = [
   { month: "Jan", receita: 4200, despesas: 2400 },

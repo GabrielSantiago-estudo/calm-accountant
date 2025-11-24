@@ -23,8 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["calm-accountant-frontend/src/src/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["calm-accountant-frontend/src/src"]
+  "include": ["src"]
 }

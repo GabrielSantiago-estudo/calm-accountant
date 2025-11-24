@@ -1,9 +1,5 @@
-from dotenv import load_dotenv
-load_dotenv()
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 from functools import lru_cache
-from typing import Optional
-from urllib.parse import quote_plus
 
 class Settings(BaseSettings):
     # Banco de Dados
@@ -11,8 +7,8 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_USER: str = "root"
-    DB_PASSWORD: str = "Admin@123"
-    DB_NAME: str = "ProjetoExtensão"
+    DB_PASSWORD: str = "NovaSenhaSegura123!"
+    DB_NAME: str = "calm_accountant"
 
     # Aplicação
     PORT: int = 8000
@@ -22,28 +18,14 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    # Admin (opcional)
-    ADMIN_EMAIL: Optional[str] = None
-    ADMIN_PASSWORD: Optional[str] = None
-
-    # SQLite fallback (dev)
-    SQLITE_PATH: str = "./dev.db"
-
     class Config:
-        env_file = "./app/.env"  # <-- GARANTE QUE O .env SEJA LIDO
+        env_file = ".env"
         env_file_encoding = "utf-8"
-        extra = "allow"
 
     @property
     def database_url(self) -> str:
-        if self.DB_TYPE.lower() == "sqlite":
-            return f"sqlite:///{self.SQLITE_PATH}"
-
-        user = quote_plus(self.DB_USER)
-        password = quote_plus(self.DB_PASSWORD or "")
-        host = quote_plus(self.DB_HOST)
-        # Usa pymysql (mais estável)
-        return f"{self.DB_TYPE}+pymysql://{user}:{password}@{host}:{self.DB_PORT}/{self.DB_NAME}"
+        """Gera a URL completa de conexão"""
+        return f"{self.DB_TYPE}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
 @lru_cache()
 def get_settings():

@@ -24,3 +24,46 @@ class Client(Base):
 
     def __repr__(self):
         return f"<Client(id={self.id}, name={self.full_name})>"
+
+
+# calm-accountant/app/routes/clients.py
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.database.connection import get_db
+from app.models.client import Client
+from app.schemas.client import ClientCreate, ClientResponse
+
+router = APIRouter(prefix="/api/psychologists/{psychologist_id}", tags=["clients"])
+
+@router.get("/clients", response_model=list[ClientResponse])
+def get_clients(psychologist_id: int, db: Session = Depends(get_db)):
+    try:
+        return db.query(Client).filter(Client.psychologist_id == psychologist_id).all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar clientes: {str(e)}")
+
+@router.post("/clients", response_model=ClientResponse)
+def create_client(psychologist_id: int, client: ClientCreate, db: Session = Depends(get_db)):
+    try:
+        new_client = Client(**client.dict(), psychologist_id=psychologist_id)
+        db.add(new_client)
+        db.commit()
+        db.refresh(new_client)
+        return new_client
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao criar cliente: {str(e)}")
+
+@router.get("/income/monthly")
+def get_monthly_income(psychologist_id: int, db: Session = Depends(get_db)):
+    from app.models.transaction import Transaction
+    try:
+        result = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.psychologist_id == psychologist_id,
+            Transaction.trans_type == 'Receita',
+            func.extract('year', Transaction.trans_date) == func.extract('year', func.now()),
+            func.extract('month', Transaction.trans_date) == func.extract('month', func.now())
+        ).scalar()
+        return {"monthly_income": result or 0.0}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar receita: {str(e)}")
