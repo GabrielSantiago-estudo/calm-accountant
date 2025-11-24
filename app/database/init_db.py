@@ -1,15 +1,14 @@
-from app.database.connection import Base, DatabaseConnection
-from app.models import client, psychologist, session, transaction
+from app.database.connection import Base, engine
+# Importar modelos para que sejam registrados no MetaData
+import app.models.client
+import app.models.psychologist
+import app.models.session
+import app.models.transaction
 from sqlalchemy.exc import SQLAlchemyError
 
 
 def init_database() -> None:
     try:
-        db_instance = DatabaseConnection()
-        engine = db_instance.engine
-        if engine is None:
-            raise RuntimeError("Engine não foi inicializada corretamente.")
-
         Base.metadata.create_all(bind=engine)
         print("✅ Banco de dados inicializado com sucesso!")
     except SQLAlchemyError as e:
